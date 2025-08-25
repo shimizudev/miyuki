@@ -69,7 +69,7 @@ export function AnimeInfoClient({ info }: AnimeInfoClientProps) {
             width={2000}
             height={2000}
             alt={info.title}
-            className={`h-full w-full object-cover transition-all duration-1000 ease-out ${
+            className={`h-full w-full object-cover object-top transition-all duration-1000 ease-out ${
               imageLoaded ? "scale-100 opacity-100" : "scale-105 opacity-0"
             }`}
             onLoad={() => setImageLoaded(true)}

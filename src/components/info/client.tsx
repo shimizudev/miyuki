@@ -1,398 +1,361 @@
 "use client";
 
-import { motion } from "motion/react";
 import type { AnimeInfo } from "@/lib/info";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import {
-  Calendar,
-  Clock,
   Star,
   Users,
-  Music,
-  TrendingUp,
-  Heart,
+  ChevronDown,
+  ChevronUp,
+  Play,
+  Plus,
+  Share2,
+  ThumbsUp,
+  Clock,
 } from "lucide-react";
 import Image from "next/image";
-import { formatNumber } from "@/lib/format-number";
-import { capitalize } from "@/lib/capitalize";
+import { useState, useRef, useEffect } from "react";
+import { Button } from "../ui/button";
 
 interface AnimeInfoClientProps {
   info: AnimeInfo;
 }
 
 export function AnimeInfoClient({ info }: AnimeInfoClientProps) {
+  const [showFullSynopsis, setShowFullSynopsis] = useState(false);
+  const [isInList, setIsInList] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [synopsisHeight, setSynopsisHeight] = useState<number>(0);
+  const synopsisRef = useRef<HTMLDivElement>(null);
+  const fullTextRef = useRef<HTMLDivElement>(null);
+
+  const truncatedSynopsis =
+    info.synopsis && info.synopsis.length > 180
+      ? info.synopsis.substring(0, 180) + "..."
+      : (info.synopsis ?? "");
+
+  const shouldShowButton = info.synopsis && info.synopsis.length > 180;
+
+  useEffect(() => {
+    if (synopsisRef.current && fullTextRef.current) {
+      if (showFullSynopsis) {
+        setSynopsisHeight(fullTextRef.current.scrollHeight);
+      } else {
+        setSynopsisHeight(72);
+      }
+    }
+  }, [showFullSynopsis]);
+
+  useEffect(() => {
+    if (synopsisRef.current) {
+      setSynopsisHeight(72);
+    }
+  }, []);
+
   return (
-    <div className="bg-background min-h-screen">
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.8 }}
-        className="relative"
-      >
-        {info.bannerImage && (
-          <div className="relative h-[300px] overflow-hidden sm:h-[400px] md:h-[500px] lg:h-[600px]">
-            <div className="absolute inset-0 bg-cover bg-center bg-no-repeat">
-              <Image
-                src={info.bannerImage || "/placeholder.svg"}
-                alt={info.title}
-                fill
-                className="object-cover"
-                priority
-              />
-            </div>
-            <div className="from-background/80 via-background/40 to-background/20 absolute inset-0 bg-gradient-to-t" />
-            <div className="from-background/20 via-background/40 to-background absolute inset-0 bg-gradient-to-b" />
-          </div>
-        )}
+    <div className="bg-background text-foreground min-h-screen overflow-hidden">
+      <div className="relative">
+        <div className="relative h-[75vh] overflow-hidden">
+          <div
+            className={`from-primary/20 to-secondary/20 absolute inset-0 bg-gradient-to-r transition-opacity duration-1000 ${
+              imageLoaded ? "opacity-0" : "opacity-100"
+            }`}
+          />
+          <Image
+            src={
+              info.bannerImage ??
+              info.coverImage ??
+              info.images.jpg.large_image_url
+            }
+            width={2000}
+            height={2000}
+            alt={info.title}
+            className={`h-full w-full object-cover transition-all duration-1000 ease-out ${
+              imageLoaded ? "scale-100 opacity-100" : "scale-105 opacity-0"
+            }`}
+            onLoad={() => setImageLoaded(true)}
+          />
+          <div className="from-background via-background/60 absolute inset-0 bg-gradient-to-t to-transparent" />
+          <div className="from-background/80 to-background/40 absolute inset-0 bg-gradient-to-r via-transparent" />
+        </div>
+        <div className="absolute inset-0 flex items-end">
+          <div className="mx-auto w-full max-w-6xl p-6 pb-12">
+            <div className="max-w-2xl space-y-3">
+              <div
+                className={`space-y-2 transition-all duration-800 ease-out ${
+                  imageLoaded
+                    ? "translate-y-0 opacity-100"
+                    : "translate-y-8 opacity-0"
+                }`}
+                style={{ transitionDelay: "300ms" }}
+              >
+                <h1 className="text-4xl leading-tight font-bold transition-colors duration-300 md:text-5xl lg:text-6xl">
+                  {info.title_english || info.title}
+                </h1>
+                {info.title_japanese && (
+                  <p
+                    className={`text-muted-foreground text-lg transition-all duration-600 ease-out ${
+                      imageLoaded
+                        ? "translate-y-0 opacity-100"
+                        : "translate-y-4 opacity-0"
+                    }`}
+                    style={{ transitionDelay: "500ms" }}
+                  >
+                    {info.title_japanese}
+                  </p>
+                )}
+              </div>
+              <div
+                className={`flex items-center gap-4 text-sm transition-all duration-700 ease-out ${
+                  imageLoaded
+                    ? "translate-y-0 opacity-100"
+                    : "translate-y-6 opacity-0"
+                }`}
+                style={{ transitionDelay: "600ms" }}
+              >
+                <div className="flex items-center gap-1 transition-transform duration-200 hover:scale-105">
+                  <Star className="h-4 w-4 animate-pulse fill-yellow-400 text-yellow-400" />
+                  <span className="font-medium">{info.score}</span>
+                </div>
+                <span className="hover:text-primary transition-colors duration-200">
+                  {info.year}
+                </span>
+                <span className="hover:text-primary transition-colors duration-200">
+                  {info.episodes} Episodes
+                </span>
+                <span className="bg-muted hover:bg-muted/80 rounded px-2 py-1 text-xs font-medium transition-colors duration-200">
+                  {info.rating}
+                </span>
+              </div>
+              <div
+                className={`flex flex-wrap gap-2 transition-all duration-600 ease-out ${
+                  imageLoaded
+                    ? "translate-y-0 opacity-100"
+                    : "translate-y-4 opacity-0"
+                }`}
+                style={{ transitionDelay: "700ms" }}
+              >
+                {info.genres?.slice(0, 4).map((genre, index) => (
+                  <span
+                    key={genre.mal_id}
+                    className={`bg-secondary text-secondary-foreground hover:bg-secondary/80 cursor-pointer rounded-full px-3 py-1 text-sm transition-all duration-200 hover:scale-105 ${
+                      imageLoaded
+                        ? "translate-y-0 opacity-100"
+                        : "translate-y-4 opacity-0"
+                    }`}
+                    style={{
+                      transitionDelay: `${800 + index * 100}ms`,
+                      transitionDuration: "500ms",
+                    }}
+                  >
+                    {genre.name}
+                  </span>
+                ))}
+              </div>
+              <div
+                className={`max-w-xl transition-all duration-700 ease-out ${
+                  imageLoaded
+                    ? "translate-y-0 opacity-100"
+                    : "translate-y-6 opacity-0"
+                }`}
+                style={{ transitionDelay: "900ms" }}
+              >
+                <div className="relative">
+                  <div
+                    ref={fullTextRef}
+                    className="invisible absolute"
+                    aria-hidden="true"
+                  >
+                    <p className="text-muted-foreground leading-relaxed">
+                      {info.synopsis}
+                    </p>
+                  </div>
 
-        <div className="absolute right-0 bottom-0 left-0 p-4 sm:p-6 lg:p-8">
-          <div className="container mx-auto max-w-6xl">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="flex flex-col items-center gap-6 sm:gap-8 lg:flex-row lg:items-end"
-            >
-              <div className="order-1 flex-shrink-0 lg:order-none">
-                <div className="relative h-64 w-44 overflow-hidden rounded-lg shadow-2xl sm:h-80 sm:w-56 lg:h-96 lg:w-64">
-                  <Image
-                    src={info.coverImage || info.images?.jpg?.large_image_url}
-                    alt={info.title_english || info.title}
-                    fill
-                    className="object-cover"
-                    priority
+                  <div
+                    ref={synopsisRef}
+                    className="overflow-hidden transition-all duration-500 ease-in-out"
+                    style={{ height: `${synopsisHeight}px` }}
+                  >
+                    <p className="text-muted-foreground leading-relaxed">
+                      {showFullSynopsis ? info.synopsis : truncatedSynopsis}
+                    </p>
+                  </div>
+
+                  {!showFullSynopsis && shouldShowButton && (
+                    <div className="pointer-events-none absolute right-0 bottom-0 left-0 h-8 transition-opacity duration-300" />
+                  )}
+                </div>
+
+                {shouldShowButton && (
+                  <button
+                    onClick={() => setShowFullSynopsis(!showFullSynopsis)}
+                    className="text-primary group mt-3 inline-flex items-center gap-1 transition-all duration-200 hover:gap-2 hover:underline"
+                  >
+                    {showFullSynopsis ? (
+                      <>
+                        Show less
+                        <ChevronUp className="h-3 w-3 transition-transform duration-200 group-hover:translate-y-[-2px]" />
+                      </>
+                    ) : (
+                      <>
+                        Read more
+                        <ChevronDown className="h-3 w-3 transition-transform duration-200 group-hover:translate-y-[2px]" />
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+              <div
+                className={`flex gap-3 transition-all duration-800 ease-out ${
+                  imageLoaded
+                    ? "translate-y-0 opacity-100"
+                    : "translate-y-8 opacity-0"
+                }`}
+                style={{ transitionDelay: "1000ms" }}
+              >
+                <Button>
+                  <Play className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
+                  Play S1 E1
+                </Button>
+                <Button
+                  variant={"secondary"}
+                  onClick={() => setIsInList(!isInList)}
+                >
+                  <Plus
+                    className={`h-5 w-5 transition-all duration-300 ${isInList ? "text-primary rotate-45" : "rotate-0"} group-hover:scale-110`}
                   />
-                </div>
+                  My List
+                </Button>
+                <Button variant={"secondary"} size={"icon"}>
+                  <ThumbsUp className="group-hover:text-primary h-5 w-5 transition-all duration-200 group-hover:scale-110" />
+                </Button>
+                <Button variant={"secondary"} size={"icon"}>
+                  <Share2 className="group-hover:text-primary h-5 w-5 transition-all duration-200 group-hover:scale-110" />
+                </Button>
               </div>
-
-              <div className="text-foreground flex-1 space-y-3 text-center sm:space-y-4 lg:mb-8 lg:text-left">
-                <div className="space-y-2">
-                  <h1 className="text-2xl leading-tight font-bold sm:text-3xl lg:text-4xl xl:text-5xl">
-                    {info.title_english || info.title}
-                  </h1>
-
-                  {info.title_japanese && (
-                    <p className="text-muted-foreground text-lg font-medium sm:text-xl">
-                      {info.title_japanese}
-                    </p>
-                  )}
-
-                  {info.aired.string && (
-                    <p className="text-muted-foreground text-sm font-medium">
-                      Aired from {info.aired.string}
-                    </p>
-                  )}
-
-                  {info.genres && info.genres.length > 0 && (
-                    <div className="flex flex-wrap justify-center gap-2 pt-2 lg:justify-start">
-                      {info.genres.slice(0, 4).map((genre) => (
-                        <Badge
-                          key={genre.mal_id}
-                          variant="secondary"
-                          className="border-foreground/20 bg-foreground/10 text-foreground text-xs"
-                        >
-                          {genre.name}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex flex-wrap justify-center gap-2 sm:gap-3 lg:justify-start">
-                  {info.score && (
-                    <Badge className="flex items-center gap-1 border-yellow-400/30 bg-yellow-500/20 text-yellow-100">
-                      <Star className="h-3 w-3 fill-current" />
-                      {info.score}
-                    </Badge>
-                  )}
-
-                  {info.year && (
-                    <Badge className="flex items-center gap-1 border-blue-400/30 bg-blue-500/20 text-blue-100">
-                      <Calendar className="h-3 w-3" />
-                      {info.year}
-                    </Badge>
-                  )}
-
-                  {info.episodes && (
-                    <Badge className="flex items-center gap-1 border-green-400/30 bg-green-500/20 text-green-100">
-                      <Clock className="h-3 w-3" />
-                      {info.episodes} Episodes
-                    </Badge>
-                  )}
-
-                  {info.members && (
-                    <Badge className="flex items-center gap-1 border-purple-400/30 bg-purple-500/20 text-purple-100">
-                      <Users className="h-3 w-3" />
-                      {formatNumber(info.members)} Members
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            </motion.div>
+            </div>
           </div>
         </div>
-      </motion.div>
+      </div>
 
-      <div className="space-y-6 px-4 py-8 sm:space-y-8 sm:px-6 sm:py-12 lg:px-8">
-        <div className="container mx-auto max-w-6xl">
-          {info.synopsis && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-              className="mb-8 sm:mb-12"
-            >
-              <h2 className="mb-4 text-2xl font-bold sm:text-3xl">Synopsis</h2>
-              <p className="text-muted-foreground text-base leading-relaxed sm:text-lg">
-                {info.synopsis}
-              </p>
-            </motion.div>
-          )}
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
-            className="grid grid-cols-1 gap-6 sm:gap-8 xl:grid-cols-2"
+      <div className="mx-auto max-w-6xl px-6 py-12">
+        <div className="grid gap-8 lg:grid-cols-3">
+          <div
+            className={`space-y-8 transition-all duration-700 ease-out lg:col-span-2 ${
+              imageLoaded
+                ? "translate-y-0 opacity-100"
+                : "translate-y-6 opacity-0"
+            }`}
+            style={{ transitionDelay: "1200ms" }}
           >
-            <Card className="border-0 shadow-sm">
-              <CardContent className="p-4 sm:p-6">
-                <h3 className="mb-4 text-xl font-bold sm:mb-6">Details</h3>
-                <div className="space-y-3 sm:space-y-4">
+            <div>
+              <h2 className="hover:text-primary mb-4 text-xl font-semibold transition-colors duration-200">
+                More Details
+              </h2>
+              <div className="bg-card hover:border-border/50 space-y-4 rounded-lg border border-transparent p-6 transition-all duration-300 hover:shadow-lg">
+                <div className="grid grid-cols-2 gap-4 text-sm md:grid-cols-3">
                   {[
                     { label: "Type", value: info.type },
                     { label: "Status", value: info.status },
-                    {
-                      label: "Season",
-                      value: `${capitalize(info.season as string)}${info.year ? ` ${info.year}` : ""}`,
-                    },
+                    { label: "Season", value: `${info.season} ${info.year}` },
                     { label: "Duration", value: info.duration },
-                    { label: "Rating", value: info.rating },
-                    { label: "Source", value: info.source },
-                  ].map((detail) =>
-                    detail.value ? (
-                      <div
-                        key={detail.label}
-                        className="border-border/50 flex items-center justify-between border-b py-2 last:border-b-0"
-                      >
-                        <span className="text-muted-foreground text-sm sm:text-base">
-                          {detail.label}
-                        </span>
-                        <span className="text-sm font-medium sm:text-base">
-                          {detail.value}
-                        </span>
-                      </div>
-                    ) : null,
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-sm">
-              <CardContent className="p-4 sm:p-6">
-                <h3 className="mb-4 text-xl font-bold sm:mb-6">
-                  Statistics & Studios
-                </h3>
-                <div className="space-y-4 sm:space-y-6">
-                  {/* Statistics */}
-                  <div className="grid grid-cols-2 gap-4">
-                    {info.rank && (
-                      <div className="bg-muted/50 rounded-lg p-3 text-center">
-                        <div className="mb-1 flex items-center justify-center gap-1 text-orange-500">
-                          <TrendingUp className="h-4 w-4" />
-                        </div>
-                        <div className="text-lg font-bold">#{info.rank}</div>
-                        <div className="text-muted-foreground text-xs">
-                          Rank
-                        </div>
-                      </div>
-                    )}
-                    {info.popularity && (
-                      <div className="bg-muted/50 rounded-lg p-3 text-center">
-                        <div className="mb-1 flex items-center justify-center gap-1 text-blue-500">
-                          <Users className="h-4 w-4" />
-                        </div>
-                        <div className="text-lg font-bold">
-                          #{info.popularity}
-                        </div>
-                        <div className="text-muted-foreground text-xs">
-                          Popularity
-                        </div>
-                      </div>
-                    )}
-                    {info.favorites && (
-                      <div className="bg-muted/50 rounded-lg p-3 text-center">
-                        <div className="mb-1 flex items-center justify-center gap-1 text-red-500">
-                          <Heart className="h-4 w-4" />
-                        </div>
-                        <div className="text-lg font-bold">
-                          {formatNumber(info.favorites)}
-                        </div>
-                        <div className="text-muted-foreground text-xs">
-                          Favorites
-                        </div>
-                      </div>
-                    )}
-                    {info.scored_by && (
-                      <div className="bg-muted/50 rounded-lg p-3 text-center">
-                        <div className="mb-1 flex items-center justify-center gap-1 text-yellow-500">
-                          <Star className="h-4 w-4" />
-                        </div>
-                        <div className="text-lg font-bold">
-                          {formatNumber(info.scored_by)}
-                        </div>
-                        <div className="text-muted-foreground text-xs">
-                          Scored By
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  {info.studios && info.studios.length > 0 && (
-                    <div className="space-y-3">
-                      <h4 className="text-muted-foreground text-sm font-medium tracking-wide uppercase">
-                        Studios
-                      </h4>
-                      <div className="flex flex-wrap gap-2">
-                        {info.studios.map((studio) => (
-                          <Badge
-                            key={studio.mal_id}
-                            variant="outline"
-                            className="text-sm"
-                          >
-                            {studio.name}
-                          </Badge>
-                        ))}
-                      </div>
+                    { label: "Studio", value: info.studios?.[0]?.name },
+                    { label: "Aired", value: info.aired?.string },
+                  ].map((item, index) => (
+                    <div
+                      key={item.label}
+                      className={`hover:bg-muted/50 rounded p-2 transition-all duration-200 hover:scale-105 ${
+                        imageLoaded
+                          ? "translate-y-0 opacity-100"
+                          : "translate-y-4 opacity-0"
+                      }`}
+                      style={{
+                        transitionDelay: `${1300 + index * 100}ms`,
+                        transitionDuration: "400ms",
+                      }}
+                    >
+                      <span className="text-muted-foreground">
+                        {item.label}
+                      </span>
+                      <div className="font-medium capitalize">{item.value}</div>
                     </div>
-                  )}
+                  ))}
                 </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.6 }}
-            className="mt-6 grid grid-cols-1 gap-6 sm:mt-8 sm:gap-8 lg:grid-cols-2"
+              </div>
+            </div>
+          </div>
+          <div
+            className={`space-y-6 transition-all duration-800 ease-out ${
+              imageLoaded
+                ? "translate-y-0 opacity-100"
+                : "translate-y-8 opacity-0"
+            }`}
+            style={{ transitionDelay: "1300ms" }}
           >
-            {(info.theme?.openings?.length > 0 ||
-              info.theme?.endings?.length > 0) && (
-              <Card className="border-0 shadow-sm">
-                <CardContent className="p-4 sm:p-6">
-                  <h3 className="mb-4 flex items-center gap-2 text-xl font-bold sm:mb-6">
-                    <Music className="h-5 w-5" />
-                    Theme Songs
-                  </h3>
-                  <div className="space-y-4">
-                    {info.theme?.openings && info.theme.openings.length > 0 && (
-                      <div>
-                        <h4 className="text-muted-foreground mb-2 text-sm font-medium tracking-wide uppercase">
-                          Opening Themes
-                        </h4>
-                        <div className="space-y-2">
-                          {info.theme.openings
-                            .slice(0, 3)
-                            .map((opening, index) => (
-                              <div
-                                key={index}
-                                className="bg-muted/30 rounded p-2 text-sm"
-                              >
-                                {opening}
-                              </div>
-                            ))}
-                        </div>
-                      </div>
-                    )}
-                    {info.theme?.endings && info.theme.endings.length > 0 && (
-                      <div>
-                        <h4 className="text-muted-foreground mb-2 text-sm font-medium tracking-wide uppercase">
-                          Ending Themes
-                        </h4>
-                        <div className="space-y-2">
-                          {info.theme.endings
-                            .slice(0, 3)
-                            .map((ending, index) => (
-                              <div
-                                key={index}
-                                className="bg-muted/30 rounded p-2 text-sm"
-                              >
-                                {ending}
-                              </div>
-                            ))}
-                        </div>
-                      </div>
-                    )}
+            <div>
+              <h3 className="hover:text-primary mb-4 text-lg font-semibold transition-colors duration-200">
+                Stats
+              </h3>
+              <div className="bg-card hover:border-border/50 space-y-4 rounded-lg border border-transparent p-6 transition-all duration-300 hover:shadow-lg">
+                {[
+                  { label: "Rating", value: info.score, icon: Star },
+                  {
+                    label: "Members",
+                    value: `${(info.members / 1000).toFixed(0)}K`,
+                    icon: Users,
+                  },
+                  { label: "Episodes", value: info.episodes, icon: Clock },
+                ].map((stat, index) => (
+                  <div
+                    key={stat.label}
+                    className={`hover:bg-muted/30 group flex items-center justify-between rounded p-2 transition-all duration-200 hover:scale-105 ${
+                      imageLoaded
+                        ? "translate-y-0 opacity-100"
+                        : "translate-y-4 opacity-0"
+                    }`}
+                    style={{
+                      transitionDelay: `${1400 + index * 100}ms`,
+                      transitionDuration: "500ms",
+                    }}
+                  >
+                    <span className="text-muted-foreground group-hover:text-foreground transition-colors duration-200">
+                      {stat.label}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      {stat.icon === Star && (
+                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 transition-transform duration-200 group-hover:scale-110" />
+                      )}
+                      <span className="group-hover:text-primary font-medium transition-colors duration-200">
+                        {stat.value}
+                      </span>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            )}
-          </motion.div>
-
-          {info.relations && info.relations.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.7 }}
-              className="mt-6 sm:mt-8"
-            >
-              <Card className="border-0 shadow-sm">
-                <CardContent className="p-4 sm:p-6">
-                  <h3 className="mb-4 text-xl font-bold sm:mb-6">
-                    Related Anime & Manga
-                  </h3>
-                  <div className="space-y-4">
-                    {info.relations.slice(0, 5).map((relation, index) => (
-                      <div
-                        key={index}
-                        className="border-border/50 border-b pb-3 last:border-b-0"
-                      >
-                        <div className="mb-2 flex items-center justify-between">
-                          <Badge variant="outline" className="text-xs">
-                            {relation.relation}
-                          </Badge>
-                        </div>
-                        <div className="space-y-1">
-                          {relation.entry.slice(0, 3).map((entry) => (
-                            <div
-                              key={entry.mal_id}
-                              className="flex items-center justify-between"
-                            >
-                              <span className="text-sm font-medium">
-                                {entry.name}
-                              </span>
-                              <Badge variant="secondary" className="text-xs">
-                                {entry.type}
-                              </Badge>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
-
-          {info.background && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.8 }}
-              className="mt-6 sm:mt-8"
-            >
-              <Card className="border-0 shadow-sm">
-                <CardContent className="p-4 sm:p-6">
-                  <h3 className="mb-4 text-xl font-bold">Background</h3>
-                  <p className="text-muted-foreground text-sm leading-relaxed sm:text-base">
-                    {info.background}
-                  </p>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
+                ))}
+              </div>
+            </div>
+            <div>
+              <h3 className="hover:text-primary mb-4 text-lg font-semibold transition-colors duration-200">
+                Genres
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {info.genres?.map((genre, index) => (
+                  <span
+                    key={genre.mal_id}
+                    className={`bg-secondary text-secondary-foreground hover:bg-secondary/80 cursor-pointer rounded-md px-3 py-1 text-sm transition-all duration-200 hover:scale-105 hover:shadow-md ${
+                      imageLoaded
+                        ? "translate-y-0 opacity-100"
+                        : "translate-y-4 opacity-0"
+                    }`}
+                    style={{
+                      transitionDelay: `${1700 + index * 100}ms`,
+                      transitionDuration: "400ms",
+                    }}
+                  >
+                    {genre.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

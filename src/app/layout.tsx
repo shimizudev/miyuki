@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { Outfit } from "next/font/google";
+import { Asap } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 
-const outfit = Outfit({
+const asap = Asap({
   weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
   subsets: ["latin-ext", "latin"],
 });
@@ -20,7 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressContentEditableWarning suppressHydrationWarning>
-      <body className={`${outfit.className} antialiased`}>
+      <body className={`${asap.className} antialiased`}>
         <Providers>{children}</Providers>
       </body>
     </html>

@@ -15,6 +15,7 @@ export const AnimeSlider = ({ animes, title }: AnimeSliderProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [currentPosition, setCurrentPosition] = useState(0);
   const constraintsRef = useRef<HTMLDivElement>(null);
+  const sliderRef = useRef<HTMLDivElement>(null);
   const x = useMotionValue(0);
 
   const cardWidth = 200;
@@ -27,19 +28,27 @@ export const AnimeSlider = ({ animes, title }: AnimeSliderProps) => {
   useEffect(() => {
     const updateDimensions = () => {
       if (constraintsRef.current) {
-        const width = constraintsRef.current.offsetWidth;
-        const cardsVisible = Math.floor(width / cardTotalWidth);
-        setVisibleCards(cardsVisible);
+        const containerWidth =
+          constraintsRef.current.getBoundingClientRect().width;
+        const cardsVisible = Math.floor(containerWidth / cardTotalWidth);
+        setVisibleCards(Math.max(1, cardsVisible));
 
         const totalContentWidth = animes.length * cardTotalWidth - cardGap;
-        const maxDrag = Math.max(0, totalContentWidth - width);
+        const maxDrag = Math.max(0, totalContentWidth - containerWidth);
         setMaxDragDistance(maxDrag);
       }
     };
 
     updateDimensions();
-    window.addEventListener("resize", updateDimensions);
-    return () => window.removeEventListener("resize", updateDimensions);
+
+    const resizeObserver = new ResizeObserver(updateDimensions);
+    if (constraintsRef.current) {
+      resizeObserver.observe(constraintsRef.current);
+    }
+
+    return () => {
+      resizeObserver.disconnect();
+    };
   }, [animes.length, cardTotalWidth]);
 
   useEffect(() => {
@@ -51,12 +60,28 @@ export const AnimeSlider = ({ animes, title }: AnimeSliderProps) => {
 
   const handleDragEnd = () => {
     setIsDragging(false);
+
+    // Snap to nearest card
+    const currentX = x.get();
+    const snapPosition =
+      Math.round(-currentX / cardTotalWidth) * cardTotalWidth;
+    const clampedPosition = Math.max(
+      0,
+      Math.min(maxDragDistance, snapPosition),
+    );
+
+    animate(x, -clampedPosition, {
+      type: "spring",
+      damping: 30,
+      stiffness: 400,
+      duration: 0.6,
+    });
   };
 
   const navigateLeft = () => {
     const newPosition = Math.max(
       0,
-      currentPosition - cardTotalWidth * visibleCards,
+      currentPosition - cardTotalWidth * Math.max(1, visibleCards - 1),
     );
     animate(x, -newPosition, {
       type: "spring",
@@ -69,7 +94,7 @@ export const AnimeSlider = ({ animes, title }: AnimeSliderProps) => {
   const navigateRight = () => {
     const newPosition = Math.min(
       maxDragDistance,
-      currentPosition + cardTotalWidth * visibleCards,
+      currentPosition + cardTotalWidth * Math.max(1, visibleCards - 1),
     );
     animate(x, -newPosition, {
       type: "spring",
@@ -79,8 +104,8 @@ export const AnimeSlider = ({ animes, title }: AnimeSliderProps) => {
     });
   };
 
-  const showLeftButton = currentPosition > 0;
-  const showRightButton = currentPosition < maxDragDistance;
+  const showLeftButton = currentPosition > 5;
+  const showRightButton = currentPosition < maxDragDistance - 5;
 
   return (
     <div className="w-full">
@@ -90,10 +115,10 @@ export const AnimeSlider = ({ animes, title }: AnimeSliderProps) => {
         </div>
       )}
 
-      <div className="group relative">
+      <div className="group relative" ref={sliderRef}>
         <motion.button
           onClick={navigateLeft}
-          className="absolute top-1/2 left-2 z-10 -translate-y-1/2 rounded-full bg-black/70 p-2 text-white backdrop-blur-sm transition-all duration-200 hover:bg-black/90"
+          className="absolute top-1/2 left-2 z-20 -translate-y-1/2 rounded-full bg-black/80 p-2 text-white shadow-lg backdrop-blur-sm transition-all duration-200 hover:bg-black/90"
           initial={{ opacity: 0, x: -20 }}
           animate={{
             opacity: showLeftButton ? 1 : 0,
@@ -109,7 +134,7 @@ export const AnimeSlider = ({ animes, title }: AnimeSliderProps) => {
 
         <motion.button
           onClick={navigateRight}
-          className="absolute top-1/2 right-2 z-10 -translate-y-1/2 rounded-full bg-black/70 p-2 text-white backdrop-blur-sm transition-all duration-200 hover:bg-black/90"
+          className="absolute top-1/2 right-2 z-20 -translate-y-1/2 rounded-full bg-black/80 p-2 text-white shadow-lg backdrop-blur-sm transition-all duration-200 hover:bg-black/90"
           initial={{ opacity: 0, x: 20 }}
           animate={{
             opacity: showRightButton ? 1 : 0,
@@ -127,22 +152,22 @@ export const AnimeSlider = ({ animes, title }: AnimeSliderProps) => {
           <motion.div
             drag="x"
             dragConstraints={{ left: -maxDragDistance, right: 0 }}
-            dragElastic={0.2}
+            dragElastic={0.1}
             dragMomentum={true}
             onDragStart={() => setIsDragging(true)}
             onDragEnd={handleDragEnd}
             style={{ x }}
-            className="flex cursor-grab gap-4 active:cursor-grabbing"
+            className="flex cursor-grab gap-4 select-none"
             whileTap={{ cursor: "grabbing" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
           >
-            {animes.map((anime) => (
+            {animes.map((anime, index) => (
               <motion.div
-                key={anime.id}
+                key={`${anime.id}-${index}`}
                 className="flex-shrink-0"
                 style={{ width: cardWidth }}
                 animate={{
-                  scale: isDragging ? 0.95 : 1,
+                  scale: isDragging ? 0.98 : 1,
                 }}
                 transition={{ duration: 0.2 }}
               >

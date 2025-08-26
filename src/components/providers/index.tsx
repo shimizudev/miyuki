@@ -27,9 +27,7 @@ export const Providers = ({ children }: { children: React.ReactNode }) => {
     >
       <div className="flex h-screen">
         {!isInfoPage && <SidebarNavigation activeNav={activeNav} />}
-        <main
-          className={`flex-1 overflow-auto ${!isInfoPage ? "p-6 md:p-8" : ""}`}
-        >
+        <main className={`flex-1 overflow-auto`}>
           <TooltipProvider>{children}</TooltipProvider>
         </main>
       </div>

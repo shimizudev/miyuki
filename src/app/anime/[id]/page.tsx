@@ -11,8 +11,7 @@ export default async function AnimeInfo({
   params: Promise<InfoPageParams>;
 }) {
   const { id } = await params;
-  const decodedId = atob(id);
-  const info = await getAnimeInfo(decodedId);
+  const info = await getAnimeInfo(id);
 
   return (
     <>

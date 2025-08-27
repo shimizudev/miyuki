@@ -25,7 +25,7 @@ export const AnimeCard = ({ anime }: { anime: AnilistMedia }) => {
       onHoverEnd={() => setIsHovered(false)}
       className="cursor-pointer select-none"
     >
-      <Link draggable={false} href={`/anime/${btoa(anime.id.toString())}`}>
+      <Link draggable={false} href={`/anime/${anime.id.toString()}`}>
         <Image
           src={anime.coverImage.extraLarge || anime.coverImage.large}
           alt={anime.title.english || anime.title.romaji}

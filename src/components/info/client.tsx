@@ -15,6 +15,7 @@ import {
 import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 import { Button } from "../ui/button";
+import EpisodesSection from "./episodes";
 
 interface AnimeInfoClientProps {
   info: AnimeInfo;
@@ -88,7 +89,15 @@ export function AnimeInfoClient({ info }: AnimeInfoClientProps) {
                 }`}
                 style={{ transitionDelay: "300ms" }}
               >
-                <h1 className="text-4xl leading-tight font-bold transition-colors duration-300 md:text-5xl lg:text-6xl">
+                <h1
+                  className={`leading-tight font-bold transition-colors duration-300 ${
+                    (info.title_english || info.title).length > 50
+                      ? "text-3xl md:text-4xl lg:text-5xl"
+                      : (info.title_english || info.title).length > 30
+                        ? "text-4xl md:text-5xl lg:text-6xl"
+                        : "text-5xl md:text-6xl lg:text-7xl"
+                  }`}
+                >
                   {info.title_english || info.title}
                 </h1>
                 {info.title_japanese && (
@@ -236,6 +245,8 @@ export function AnimeInfoClient({ info }: AnimeInfoClientProps) {
           </div>
         </div>
       </div>
+
+      <EpisodesSection animeId={info.al_id} />
 
       <div className="mx-auto max-w-6xl px-6 py-12">
         <div className="grid gap-8 lg:grid-cols-3">

@@ -78,6 +78,7 @@ export const CrysolineMappingProviders = [
   "animeheaven",
   "animeparadise",
   "animeonsen",
+  "kickassanime",
 ];
 
 export type CrysolineProvider =
@@ -86,7 +87,8 @@ export type CrysolineProvider =
   | "heaven"
   | "anizone"
   | "paradise"
-  | "onsen";
+  | "onsen"
+  | "kaa";
 
 interface ProviderEpisodesResponse<T = unknown> {
   provider: CrysolineProvider;
@@ -103,6 +105,7 @@ const providerNameMapping: Record<string, CrysolineProvider> = {
   animeheaven: "heaven",
   animeparadise: "paradise",
   animeonsen: "onsen",
+  kickassanime: "kaa",
 };
 
 export const getCrysolineMapping = async (malId: string) => {

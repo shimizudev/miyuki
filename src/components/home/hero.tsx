@@ -5,20 +5,120 @@ import { Star, Play, Plus } from "lucide-react";
 import { motion } from "motion/react";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
+import { useHeroVideo } from "@/hooks/api/use-hero-video";
+import { useState, useRef, useEffect } from "react";
 
 interface AnimeHeroProps {
   media: AnilistMedia;
+  heroVideoId?: string;
   onPlay?: () => void;
   onAddToList?: () => void;
 }
 
-export function AnimeHero({ media, onPlay, onAddToList }: AnimeHeroProps) {
+export function AnimeHero({
+  media,
+  heroVideoId,
+  onPlay,
+  onAddToList,
+}: AnimeHeroProps) {
   const displayTitle = media.title.english || media.title.romaji;
   const cleanDescription = media.description?.replace(/<[^>]*>/g, "") || "";
   const truncatedDescription =
     cleanDescription.length > 200
       ? cleanDescription.substring(0, 200) + "..."
       : cleanDescription;
+
+  const [videoLoaded, setVideoLoaded] = useState(false);
+  const [videoError, setVideoError] = useState(false);
+  const [videoPlayError, setVideoPlayError] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  const { data: videoData, error: videoFetchError } = useHeroVideo(
+    heroVideoId || "",
+    { enabled: !!heroVideoId },
+  );
+
+  const getVideoUrl = () => {
+    if (!videoData?.success || !videoData.data) return null;
+
+    return videoData.data.url;
+  };
+
+  const videoUrl = getVideoUrl();
+
+  const shouldShowVideo =
+    heroVideoId &&
+    videoUrl &&
+    !videoError &&
+    !videoFetchError &&
+    !videoPlayError &&
+    videoLoaded;
+
+  const shouldShowBanner = !shouldShowVideo;
+
+  useEffect(() => {
+    if (videoRef.current && videoUrl) {
+      const video = videoRef.current;
+
+      const handleLoadedData = () => {
+        console.log("Video data loaded, attempting to play");
+        setVideoLoaded(true);
+
+        const playPromise = video.play();
+
+        if (playPromise !== undefined) {
+          playPromise.catch((error) => {
+            console.warn("Video autoplay failed:", error);
+            setVideoPlayError(true);
+          });
+        }
+      };
+
+      const handleError = () => {
+        setVideoError(true);
+      };
+
+      const handleCanPlay = () => {
+        if (video.readyState >= 3) {
+          setVideoLoaded(true);
+        }
+      };
+
+      const handleLoadStart = () => {
+        setVideoError(false);
+        setVideoPlayError(false);
+        setVideoLoaded(false);
+      };
+
+      const handleStalled = () => {
+        setTimeout(() => {
+          if (!videoLoaded) {
+            setVideoError(true);
+          }
+        }, 5000);
+      };
+
+      video.addEventListener("loadstart", handleLoadStart);
+      video.addEventListener("loadeddata", handleLoadedData);
+      video.addEventListener("canplay", handleCanPlay);
+      video.addEventListener("error", handleError);
+      video.addEventListener("stalled", handleStalled);
+
+      return () => {
+        video.removeEventListener("loadstart", handleLoadStart);
+        video.removeEventListener("loadeddata", handleLoadedData);
+        video.removeEventListener("canplay", handleCanPlay);
+        video.removeEventListener("error", handleError);
+        video.removeEventListener("stalled", handleStalled);
+      };
+    }
+  }, [videoUrl, videoLoaded]);
+
+  useEffect(() => {
+    setVideoLoaded(false);
+    setVideoError(false);
+    setVideoPlayError(false);
+  }, [videoUrl]);
 
   return (
     <div className="relative h-[70vh] w-full overflow-hidden">
@@ -28,12 +128,37 @@ export function AnimeHero({ media, onPlay, onAddToList }: AnimeHeroProps) {
         transition={{ duration: 1.5, ease: "easeOut" }}
         className="absolute inset-0"
       >
+        {heroVideoId && videoUrl && !videoFetchError && (
+          <video
+            ref={videoRef}
+            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${
+              shouldShowVideo ? "opacity-100" : "opacity-0"
+            }`}
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            onError={() => {
+              setVideoError(true);
+            }}
+            onLoadedData={() => {
+              console.log("Video loaded successfully");
+            }}
+          >
+            <source src={videoUrl} type="video/mp4" />
+          </video>
+        )}
+
         <div
-          className="h-full w-full bg-cover bg-center bg-no-repeat"
+          className={`absolute inset-0 h-full w-full bg-cover bg-center bg-no-repeat transition-opacity duration-500 ${
+            shouldShowBanner ? "opacity-100" : "opacity-0"
+          }`}
           style={{
             backgroundImage: `url(${media.bannerImage})`,
           }}
         />
+
         <div className="from-background/80 via-background/40 absolute inset-0 bg-gradient-to-r to-transparent" />
         <div className="from-background/60 absolute inset-0 bg-gradient-to-t via-transparent to-transparent" />
         <div className="to-background absolute inset-0 bg-gradient-to-b from-transparent via-transparent" />

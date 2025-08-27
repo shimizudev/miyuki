@@ -4,6 +4,8 @@ import { SidebarNavigation } from "../base/nav";
 import { ThemeProvider } from "./theme-provider";
 import { usePathname } from "next/navigation";
 import { TooltipProvider } from "../ui/tooltip";
+import TanstackQueryProvider from "./tanstack";
+import { AppProgressBar as ProgressBar } from "next-nprogress-bar";
 
 export const Providers = ({ children }: { children: React.ReactNode }) => {
   const pathName = usePathname().replace("/", "");
@@ -19,18 +21,26 @@ export const Providers = ({ children }: { children: React.ReactNode }) => {
   ];
 
   return (
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="system"
-      enableSystem
-      disableTransitionOnChange
-    >
-      <div className="flex h-screen">
-        {!isInfoPage && <SidebarNavigation activeNav={activeNav} />}
-        <main className={`flex-1 overflow-auto`}>
-          <TooltipProvider>{children}</TooltipProvider>
-        </main>
-      </div>
-    </ThemeProvider>
+    <TanstackQueryProvider>
+      <ThemeProvider
+        attribute="class"
+        defaultTheme="system"
+        enableSystem
+        disableTransitionOnChange
+      >
+        <ProgressBar
+          height="2px"
+          color="#88c6ff"
+          options={{ showSpinner: true }}
+          shallowRouting
+        />
+        <div className="flex h-screen">
+          {!isInfoPage && <SidebarNavigation activeNav={activeNav} />}
+          <main className={`flex-1 overflow-auto`}>
+            <TooltipProvider>{children}</TooltipProvider>
+          </main>
+        </div>
+      </ThemeProvider>
+    </TanstackQueryProvider>
   );
 };

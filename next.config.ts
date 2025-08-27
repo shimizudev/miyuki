@@ -9,6 +9,18 @@ const nextConfig: NextConfig = {
       {
         hostname: "artworks.thetvdb.com",
       },
+      {
+        hostname: "media.kitsu.app",
+      },
+      {
+        hostname: "anime.delivery",
+      },
+      {
+        hostname: "image.tmdb.org",
+      },
+      {
+        hostname: "seiryuu.vid-cdn.xyz",
+      },
     ],
   },
   devIndicators: false,

@@ -1,5 +1,6 @@
 import { ANIZIP_URL } from "./constants";
 import { MediaData, MediaImage } from "./info";
+import { miyuki } from "./request";
 import { safeAwait } from "./safe-await";
 
 export const extractClearLogo = (data: MediaData): MediaImage | undefined =>
@@ -14,7 +15,9 @@ export const extractFanart = (data: MediaData): MediaImage | undefined =>
 export const getClearLogo = async (id: string): Promise<string | null> => {
   const url = `${ANIZIP_URL}/mappings?anilist_id=${id}`;
 
-  const { data: response, error: fetchError } = await safeAwait(fetch(url));
+  const { data: response, error: fetchError } = await safeAwait(
+    miyuki.get(url),
+  );
 
   if (fetchError) {
     console.error(
@@ -44,4 +47,41 @@ export const getClearLogo = async (id: string): Promise<string | null> => {
   const data = jsonData as MediaData;
 
   return extractClearLogo(data)?.url ?? null;
+};
+
+export const getAnizipEpisodes = async (id: string) => {
+  const url = `${ANIZIP_URL}/mappings?anilist_id=${id}`;
+
+  const { data: response, error: fetchError } = await safeAwait(
+    miyuki.get(url),
+  );
+
+  if (fetchError) {
+    console.error(
+      `Failed to fetch clear art for ID ${id}:`,
+      fetchError.message,
+    );
+    return null;
+  }
+
+  if (!response.ok) {
+    console.warn(`API returned ${response.status} for ID ${id}`);
+    return null;
+  }
+
+  const { data: jsonData, error: parseError } = await safeAwait(
+    response.json(),
+  );
+
+  if (parseError) {
+    console.error(
+      `Failed to parse JSON response for ID ${id}:`,
+      parseError.message,
+    );
+    return null;
+  }
+
+  const data = jsonData as MediaData;
+
+  return Object.values(data.episodes);
 };

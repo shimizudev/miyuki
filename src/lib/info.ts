@@ -7,8 +7,16 @@ import {
   getAniListAnimeImages,
   getMalIdFromAniList,
 } from "./anilist";
-import { getCrysolineMapping } from "./crysoline";
 import { getTVDBArtworks } from "./tvdb";
+import {
+  getKitsuAnimeInfo,
+  extractKitsuCoverImage,
+  extractKitsuPosterImage,
+  getKitsuIdFromMappings,
+  KitsuAnime,
+  KitsuEpisode,
+} from "./kitsu";
+import { miyuki } from "./request";
 
 interface MediaTitle {
   [langCode: string]: string | null; // e.g., "en", "ja", "x-jat", can be null
@@ -16,7 +24,7 @@ interface MediaTitle {
 
 type EpisodeTitle = MediaTitle;
 
-interface EpisodeData {
+export interface EpisodeData {
   tvdbShowId: number;
   tvdbId: number;
   seasonNumber: number;
@@ -72,41 +80,61 @@ export type AnimeInfo = MALAnime & {
   clearLogo: string | null;
   bannerImage: string | null;
   color: string | null;
+  kitsuEpisodes?: KitsuEpisode[];
+  al_id: string;
 };
 
 const mergeInfo = (
   info: MALAnime,
   meta: MediaData,
-  crysolineMappings?: Record<string, string> | null,
   anilistImages?: AniListImageMedia,
   tvdbImages?: { type: string; image: string }[],
+  kitsuAnime?: KitsuAnime,
 ) => {
+  // Priority for banner/cover image: Kitsu > TVDB > AniList > Anizip
+  const bannerImage =
+    extractKitsuCoverImage(kitsuAnime!) ??
+    tvdbImages?.filter((img) => img.type === "banner")[0]?.image ??
+    anilistImages?.bannerImage ??
+    extractBanner(meta)?.url ??
+    null;
+
+  // Priority for poster image: MAL > Anizip > Kitsu > AniList
+  const coverImage =
+    extractPoster(meta)?.url ??
+    extractKitsuPosterImage(kitsuAnime!) ??
+    info.images.jpg.large_image_url ??
+    info.images.jpg.image_url ??
+    anilistImages?.coverImage.extraLarge ??
+    anilistImages?.coverImage.large ??
+    anilistImages?.coverImage.medium ??
+    null;
+
+  const clearLogo =
+    tvdbImages?.filter((img) => img.type === "clear_logo").length !== 0
+      ? tvdbImages?.filter((img) => img.type === "clear_logo")?.[0].image
+      : extractClearLogo(meta)?.url;
+
   return {
     ...info,
     mappings: {
       ...meta.mappings,
-      ...(crysolineMappings ?? {}),
     },
-    clearLogo: extractClearLogo(meta)?.url ?? null,
-    bannerImage:
-      tvdbImages?.filter((img) => img.type === "banner")[0]?.image ??
-      anilistImages?.bannerImage ??
-      extractBanner(meta)?.url ??
-      null,
-    coverImage:
-      extractPoster(meta)?.url ??
-      anilistImages?.coverImage.extraLarge ??
-      anilistImages?.coverImage.large ??
-      anilistImages?.coverImage.medium ??
-      null,
+    al_id: anilistImages?.id.toString(),
+    clearLogo: clearLogo ?? null,
+    bannerImage,
+    coverImage,
     color: anilistImages?.coverImage.color,
   } as AnimeInfo;
 };
 
 export const getAnimeInfo = async (id: string): Promise<AnimeInfo> => {
+  console.log("Starting timer");
   const url = `${ANIZIP_URL}/mappings?anilist_id=${id}`;
 
-  const { data: response, error: fetchError } = await safeAwait(fetch(url));
+  const { data: response, error: fetchError } = await safeAwait(
+    miyuki.get(url),
+  );
 
   if (fetchError) {
     console.error(
@@ -144,13 +172,15 @@ export const getAnimeInfo = async (id: string): Promise<AnimeInfo> => {
     return {} as AnimeInfo;
   }
 
-  const [mal, anilist, crysoline, tvdb] = await Promise.all([
+  const kitsuId = getKitsuIdFromMappings(data.mappings);
+
+  const [mal, anilist, tvdb, kitsuAnime] = await Promise.all([
     getMalAnimeInfo(malId),
     getAniListAnimeImages(id),
-    getCrysolineMapping(malId),
     data.mappings.thetvdb_id
       ? getTVDBArtworks(data.mappings.thetvdb_id?.toString())
       : Promise.resolve([]),
+    kitsuId ? getKitsuAnimeInfo(kitsuId) : Promise.resolve(null),
   ]);
 
   if (!mal) {
@@ -158,7 +188,13 @@ export const getAnimeInfo = async (id: string): Promise<AnimeInfo> => {
     return {} as AnimeInfo;
   }
 
-  const info = mergeInfo(mal, data, crysoline, anilist ?? undefined, tvdb);
+  const info = mergeInfo(
+    mal,
+    data,
+    anilist ?? undefined,
+    tvdb,
+    kitsuAnime ?? undefined,
+  );
 
   return info;
 };

@@ -1,4 +1,5 @@
 import { JIKAN_URL } from "./constants";
+import { miyuki } from "./request";
 import { safeAwait } from "./safe-await";
 
 export interface MALImageSet {
@@ -146,9 +147,7 @@ export const getMalAnimeInfo = async (id: string) => {
   const url = `${JIKAN_URL}/anime/${id}/full`;
 
   const { data: response, error: fetchError } = await safeAwait(
-    fetch(url, {
-      next: { revalidate: 3600 },
-    }),
+    miyuki.get<{ data: MALAnime }>(url),
   );
 
   if (fetchError || !response?.ok) {

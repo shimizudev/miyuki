@@ -1,3 +1,4 @@
+import { miyuki } from "./request";
 import { TVDB_API } from "./constants";
 
 const apiKeys = [
@@ -8,25 +9,25 @@ const apiKeys = [
 ];
 
 async function getToken(key: string): Promise<string | undefined> {
-  const data: Response | undefined = await fetch(`${TVDB_API}/login`, {
-    body: JSON.stringify({
-      apikey: `${key}`,
-    }),
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-  }).catch(() => {
+  try {
+    const response = await miyuki.post<{ data: { token: string } }>(
+      `${TVDB_API}/login`,
+      {
+        json: {
+          apikey: key,
+        },
+      },
+    );
+
+    const data = await response.json();
+    return data.data.token;
+  } catch (error) {
+    console.error(
+      `Failed to get TVDB token with key ${key}:`,
+      error instanceof Error ? error.message : "Unknown error",
+    );
     return undefined;
-  });
-  if (!data) return undefined;
-
-  if (data.ok) {
-    return ((await data.json()) as { data: { token: string } }).data
-      .token as string;
   }
-
-  return undefined;
 }
 
 export const getTVDBArtworks = async (
@@ -37,73 +38,85 @@ export const getTVDBArtworks = async (
     apiKeys[Math.floor(Math.random() * apiKeys.length)],
   );
 
-  const url = `${TVDB_API}/${type}/${tvdb_id}/extended`;
-
-  const response = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  const info = (await response.json()) as { data: ITVDBResponse };
-
-  const artwork: IArtwork[] = info.data.artworks;
-
-  const artworkIds = {
-    banner: [1, 16, 6],
-    poster: [2, 7, 14, 27],
-    backgrounds: [3, 8, 15],
-    icon: [5, 10, 18, 19, 26],
-    clearArt: [22, 24],
-    clearLogo: [23, 25],
-    fanart: [11, 12],
-    actorPhoto: [13],
-    cinemagraphs: [20, 21],
-  };
-
-  const coverImages = artwork.filter((art) =>
-    artworkIds.poster.includes(Number(art.type)),
-  );
-  coverImages.sort((a, b) => b.score - a.score);
-
-  const banners = artwork.filter((art) =>
-    artworkIds.backgrounds.includes(Number(art.type)),
-  );
-  banners.sort((a, b) => b.score - a.score);
-
-  const typeMapping: { [key: string]: string } = {
-    backgrounds: "banner",
-    banner: "top_banner",
-    clearLogo: "clear_logo",
-    poster: "poster",
-    icon: "icon",
-    clearArt: "clear_art",
-  };
-
-  function getType(type: number): string | null {
-    for (const key in artworkIds) {
-      if (artworkIds[key as keyof typeof artworkIds].includes(type)) {
-        return typeMapping[key];
-      }
-    }
-    return null;
+  if (!token) {
+    console.error("Failed to obtain TVDB authentication token");
+    return [];
   }
 
-  const artworkData = artwork
-    .map((art) => {
-      const type = getType(art.type);
-      if (!type) return null;
-      return {
-        type,
-        image: art.image,
-      };
-    })
-    .filter(Boolean) as {
-    type: string;
-    image: string;
-  }[];
+  const url = `${TVDB_API}/${type}/${tvdb_id}/extended`;
 
-  return artworkData;
+  try {
+    const response = await miyuki.get<{ data: ITVDBResponse }>(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const info = await response.json();
+    const artwork: IArtwork[] = info.data.artworks;
+
+    const artworkIds = {
+      banner: [1, 16, 6],
+      poster: [2, 7, 14, 27],
+      backgrounds: [3, 8, 15],
+      icon: [5, 10, 18, 19, 26],
+      clearArt: [22, 24],
+      clearLogo: [23, 25],
+      fanart: [11, 12],
+      actorPhoto: [13],
+      cinemagraphs: [20, 21],
+    };
+
+    const coverImages = artwork.filter((art) =>
+      artworkIds.poster.includes(Number(art.type)),
+    );
+    coverImages.sort((a, b) => b.score - a.score);
+
+    const banners = artwork.filter((art) =>
+      artworkIds.backgrounds.includes(Number(art.type)),
+    );
+    banners.sort((a, b) => b.score - a.score);
+
+    const typeMapping: { [key: string]: string } = {
+      backgrounds: "banner",
+      banner: "top_banner",
+      clearLogo: "clear_logo",
+      poster: "poster",
+      icon: "icon",
+      clearArt: "clear_art",
+    };
+
+    function getType(type: number): string | null {
+      for (const key in artworkIds) {
+        if (artworkIds[key as keyof typeof artworkIds].includes(type)) {
+          return typeMapping[key];
+        }
+      }
+      return null;
+    }
+
+    const artworkData = artwork
+      .map((art) => {
+        const type = getType(art.type);
+        if (!type) return null;
+        return {
+          type,
+          image: art.image,
+        };
+      })
+      .filter(Boolean) as {
+      type: string;
+      image: string;
+    }[];
+
+    return artworkData;
+  } catch (error) {
+    console.error(
+      `Failed to fetch TVDB artworks for ${type} ID ${tvdb_id}:`,
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return [];
+  }
 };
 
 interface ITVDBResponse {

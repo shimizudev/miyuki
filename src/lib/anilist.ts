@@ -1,5 +1,6 @@
 import { METRIC_QUERY } from "./anilist-query";
 import { ANILIST_API } from "./constants";
+import { miyuki } from "./request";
 import { safeAwait } from "./safe-await";
 
 export type MediaSort =
@@ -73,6 +74,11 @@ export interface AnilistMedia {
   };
   popularity: number;
   trending: number;
+  trailer: {
+    id: string;
+    site: string;
+    thumbnail: string;
+  } | null;
 }
 
 export interface AnilistResponse {
@@ -110,13 +116,11 @@ export const getAnilistMetric = async (
   } = params;
 
   const response = await fetch(ANILIST_API, {
-    method: "POST",
+    method: "post",
+    cache: "no-store",
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
-      "Cache-Control": "max-age=18000",
-      Pragma: "cache",
-      Expires: "18000",
     },
     body: JSON.stringify({
       query: METRIC_QUERY,
@@ -141,6 +145,7 @@ type AniListCoverImage = {
 export type AniListImageMedia = {
   coverImage: AniListCoverImage;
   bannerImage: string | null;
+  id: number;
 };
 
 export const getAniListAnimeImages = async (
@@ -154,6 +159,7 @@ export const getAniListAnimeImages = async (
   const query = `
     query ($id: Int) {
       Media(id: $id, type: ANIME) {
+        id
         coverImage {
           extraLarge
           large
@@ -168,7 +174,11 @@ export const getAniListAnimeImages = async (
   const variables = { id: Number(id) };
 
   const { data: response, error: fetchError } = await safeAwait(
-    fetch(ANILIST_API, {
+    miyuki.post<{
+      data: {
+        Media: AniListImageMedia;
+      };
+    }>(ANILIST_API, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -214,8 +224,13 @@ export const getMalIdFromAniList = async (
   const variables = { id: Number(aniListId) };
 
   const { data: response, error: fetchError } = await safeAwait(
-    fetch(ANILIST_API, {
-      method: "POST",
+    miyuki.post<{
+      data: {
+        Media: {
+          idMal: number;
+        };
+      };
+    }>(ANILIST_API, {
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",

@@ -47,7 +47,12 @@ query ($page: Int, $perPage: Int, $sort: [MediaSort], $year: Int, $season: Media
       }
       popularity
       trending
+      trailer {
+      id
+      site
+      thumbnail
+    }
     }
   }
 }
-`
+`;

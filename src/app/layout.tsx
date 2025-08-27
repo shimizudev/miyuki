@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
-import { Asap } from "next/font/google";
+import { Parkinsans } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 
-const asap = Asap({
-  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
+const parkinsans = Parkinsans({
   subsets: ["latin-ext", "latin"],
 });
 
@@ -20,7 +19,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressContentEditableWarning suppressHydrationWarning>
-      <body className={`${asap.className} antialiased`}>
+      <body className={`${parkinsans.className} antialiased`}>
         <Providers>{children}</Providers>
       </body>
     </html>
